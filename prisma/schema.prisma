@@ -1,0 +1,130 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id     String @id @default(uuid())
+  email  String @unique
+  name   String
+  role   Role   @relation(fields: [roleId], references: [id])
+  roleId String
+
+  attendanceEvents   AttendanceEvent[]
+  sessionAttendances SessionAttendance[]
+}
+
+model Role {
+  id    String @id @default(uuid())
+  name  String @unique
+  users User[]
+}
+
+model Laboratory {
+  id        String   @id @default(uuid())
+  clientId  String   @unique
+  code      String   @unique
+  name      String
+  location  String?
+  timezone  String   @default("UTC")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events   AttendanceEvent[]
+  sessionAttendances SessionAttendance[]
+}
+
+enum AttendanceEventType {
+  ENTRY
+  EXIT
+  DENIED
+}
+
+model AttendanceEvent {
+  id             String             @id @default(uuid())
+  labId          String
+  lab            Laboratory         @relation(fields: [labId], references: [id])
+  userId         String
+  user           User               @relation(fields: [userId], references: [id])
+  eventType      AttendanceEventType
+  eventAt        DateTime
+  receivedAt     DateTime           @default(now())
+  externalEventId String
+  deviceId       String?
+  payload        Json?
+  createdAt      DateTime           @default(now())
+
+  entrySessions SessionAttendance[] @relation("SessionAttendanceEntry")
+  exitSessions  SessionAttendance[] @relation("SessionAttendanceExit")
+
+  @@unique([labId, externalEventId])
+  @@index([labId, eventAt])
+  @@index([userId, eventAt])
+}
+
+model SessionAttendance {
+  id               String   @id @default(uuid())
+  labId            String
+  lab              Laboratory             @relation(fields: [labId], references: [id])
+  userId           String
+  user             User                   @relation(fields: [userId], references: [id])
+  entryEventId     String
+  entryEvent       AttendanceEvent        @relation("SessionAttendanceEntry", fields: [entryEventId], references: [id])
+  exitEventId      String?
+  exitEvent        AttendanceEvent?       @relation("SessionAttendanceExit", fields: [exitEventId], references: [id])
+  entryAt          DateTime
+  exitAt           DateTime?
+  eventCount       Int                    @default(1)
+  durationMinutes  Int?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  @@unique([entryEventId])
+  @@unique([exitEventId])
+  @@index([labId, userId])
+  @@index([entryAt])
+}
+
+model ApiRequestLog {
+  id             String   @id @default(uuid())
+  requestId      String?
+  method         String
+  path           String
+  route          String?
+  statusCode     Int?
+  durationMs     Int?
+  success        Boolean  @default(false)
+  clientIp       String?
+  userAgent      String?
+  contentLength  Int?
+  clientId       String?
+  subject        String?
+  tokenType      String?
+  audiences      String[] @default([])
+  scopes         String[] @default([])
+  requestHeaders Json?
+  requestQuery   Json?
+  requestBody    Json?
+  errorName      String?
+  errorMessage   String?
+  errorCode      String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([requestId])
+  @@index([clientId, createdAt])
+  @@index([method, statusCode])
+  @@index([path, statusCode])
+  @@index([success, createdAt])
+}
