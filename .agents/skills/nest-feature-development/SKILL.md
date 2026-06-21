@@ -52,6 +52,6 @@ src/<feature>/
 - Prisma schema and migration SQL stay aligned
 - Auth and audit implications are handled explicitly
 - Formatting, linting, and build verification are run when feasible
-- Tests are run when the change is substantial
+- New test suites or test scaffolding are not added unless the user explicitly changes the project direction
 
 For the full playbook, follow `docs/skills/nest-feature-development.md`.

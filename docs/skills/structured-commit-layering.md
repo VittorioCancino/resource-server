@@ -6,7 +6,7 @@ Use this workflow when the user wants help staging and committing current reposi
 
 Split all changes since the last commit into coherent implementation layers, then provide sequential `git add ... && git commit -m "..."` command blocks for each layer.
 
-This is especially important now that the resource server is a standalone repository: clean commit layers keep runtime behavior, database changes, tests, docs, and integration context reviewable without assuming the former monolith exists.
+This is especially important now that the resource server is a standalone repository: clean commit layers keep runtime behavior, database changes, docs, and integration context reviewable without assuming the former monolith exists.
 
 ## Core Rule
 
@@ -39,7 +39,7 @@ Prefer this order:
 2. Infrastructure: HTTP lifecycle wiring, logging/audit plumbing, auth/scope plumbing, Docker/package manager fixes.
 3. Domain logic: API routes, database logic, services, state transitions.
 4. Integration/context: local Docker/bootstrap/env docs, external Hydra connection notes, repository boundary updates.
-5. Tests, docs, skills, fixtures, or cleanup that support earlier commits.
+5. Docs, skills, fixtures, or cleanup that support earlier commits.
 
 Keep files together when one change does not make sense without the other.
 
@@ -55,7 +55,6 @@ Split files apart when they represent separate reviewable concerns even if they 
 
 ## Good Reasons To Split Files Apart
 
-- Tests that validate already-reviewable production code.
 - Docs or agent skills after behavior is implemented.
 - Refactors not required for the main feature.
 - Formatting-only changes.
@@ -66,7 +65,7 @@ Split files apart when they represent separate reviewable concerns even if they 
 
 Prepare commits for this standalone resource-server repository only. Do not propose changes under `auth-server/` or `auth-admin-panel/` unless those directories actually exist in this worktree and the user explicitly includes them.
 
-- Runtime/backend changes under `src/`, `prisma/`, and local tests belong to the resource-server repo.
+- Runtime/backend changes under `src/`, `prisma/`, and local verification files belong to the resource-server repo.
 - Root `docker-compose.yml`, `.env.example`, `README.md`, and `init.sh` are local resource-server files in this repo, not platform orchestration files.
 - Hydra auth-server and admin-panel changes are external integration work; document assumptions here instead of staging absent cross-repo files.
 - Agent/skill/docs files inside this repository belong to the resource-server repo unless they are intentionally shared outside this repo.

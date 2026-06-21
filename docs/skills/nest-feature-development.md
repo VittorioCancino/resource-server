@@ -81,13 +81,11 @@ Only add more layers when there is a concrete need.
 
 - Prefer predictable route shapes and status codes.
 - Return explicit lifecycle outcomes when useful.
-- Keep API contracts stable and easy to test.
+- Keep API contracts stable and easy to reason about.
 
-## Testing Rules
+## Verification Rules
 
-- Add e2e tests for new routes or changed HTTP behavior.
-- Add unit tests for branch-heavy service logic when useful.
-- Verify build/test commands when the change is substantial.
+- Do not add new test suites or test scaffolding unless the user explicitly changes the project direction.
 - After applying code changes, run formatting, linting, and build verification when feasible.
 
 ## Completion Checklist
@@ -100,5 +98,4 @@ Only add more layers when there is a concrete need.
 - Prisma schema and SQL migration are aligned.
 - No sensitive values are logged or persisted unsafely.
 - Formatting, linting, and build verification were run when feasible.
-- Tests were run when appropriate.
 - Final explanation mentions auth or DB lifecycle impact when relevant.

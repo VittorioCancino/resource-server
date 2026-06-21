@@ -128,10 +128,9 @@ Do not use `mapDbErrorToHttpException` for best-effort logging because logging f
 - Redact bearer tokens, cookies, secrets, passwords, credentials, and token-like fields before persistence.
 - Audit/logging writes must be best-effort and must not break the main request flow.
 
-## Testing And Verification Rules
+## Verification Rules
 
-- Add or update e2e tests when endpoint contract or auth behavior changes.
-- Add focused unit tests for branch-heavy service logic when useful.
+- Do not add new test suites or test scaffolding unless the user explicitly changes the project direction.
 - After applying code changes, run when feasible:
 
 ```bash

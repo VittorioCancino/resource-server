@@ -110,7 +110,7 @@ src/
 - Prefer one main service per feature module first.
 - Split services only when there is a clear sub-domain or workflow boundary.
 - Use method names that describe intent, not transport details.
-  - Good: `getLabByClientId`, `deregisterOwnLab`, `ingestAttendanceBatch`
+  - Good: `getLabByClientId`, `deregisterOwnLab`, `assignUserAccess`
   - Avoid vague names like `handle`, `processData`, `executeTask`
 - Keep service methods cohesive: one workflow, one clear outcome.
 
@@ -135,11 +135,11 @@ src/
 - Redact bearer tokens, secrets, credentials, and similar sensitive values before storage.
 - Logging should not break the main request flow if persistence fails.
 
-## Testing Direction
+## Verification Direction
 
-- Add e2e coverage for HTTP contract and auth behavior.
-- Add focused unit tests only where logic becomes branch-heavy or easy to regress.
-- Prefer testing service behavior through real module wiring when practical.
+- This repository currently does not maintain test suites.
+- Do not add new test scaffolding unless the user explicitly changes that direction.
+- Verify changes with formatting, linting, and build commands when feasible.
 
 ## Naming Conventions
 

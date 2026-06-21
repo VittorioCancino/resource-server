@@ -6,7 +6,7 @@ This repository is a standalone NestJS resource-server extracted from the former
 
 - Validate Hydra-issued bearer tokens for protected resource APIs.
 - Enforce resource-server audience and route-specific scopes.
-- Own users, labs, attendance schema foundations, and structured API audit logging.
+- Own users, labs, and structured API audit logging.
 - Treat Hydra/Ory, auth-server, and auth-admin-panel as external integration peers; do not assume co-located repositories, shared root Docker Compose, or monolith bootstrap scripts.
 
 ## Project Guardrails
