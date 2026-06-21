@@ -7,8 +7,9 @@ export class DeleteUserDto {
 
 export class DeleteUserDtoResponse {
   id!: string;
+  subject!: string;
   name!: string;
   email!: string;
-  roleName!: string;
+  status!: string;
   message!: string;
 }

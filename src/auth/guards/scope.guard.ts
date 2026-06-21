@@ -8,6 +8,23 @@ import { Reflector } from '@nestjs/core';
 import { REQUIRED_SCOPES_KEY } from '../decorators/scopes.decorator';
 import { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
 
+function resolveScopeTemplate(
+  scope: string,
+  params: Record<string, string | undefined> = {},
+): string {
+  return scope.replace(/:([A-Za-z0-9_]+)/g, (match, paramName: string) => {
+    const value = params[paramName];
+
+    if (!value) {
+      throw new ForbiddenException(
+        `Required scope parameter ${paramName} is missing`,
+      );
+    }
+
+    return value;
+  });
+}
+
 @Injectable()
 export class ScopeGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
@@ -30,7 +47,11 @@ export class ScopeGuard implements CanActivate {
       throw new ForbiddenException('Authenticated token is missing');
     }
 
-    const hasAllRequiredScopes = requiredScopes.every((scope) =>
+    const resolvedRequiredScopes = requiredScopes.map((scope) =>
+      resolveScopeTemplate(scope, request.params),
+    );
+
+    const hasAllRequiredScopes = resolvedRequiredScopes.every((scope) =>
       token.scope.includes(scope),
     );
 

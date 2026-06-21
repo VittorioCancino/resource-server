@@ -10,6 +10,7 @@ readonly SPINNER_FRAMES=(
 )
 
 spinner_active=0
+loaded_env_files=()
 
 cleanup() {
   if ((spinner_active)); then
@@ -30,11 +31,27 @@ require_command() {
   command -v "$1" >/dev/null 2>&1 || fail "Missing required command: $1"
 }
 
-load_env() {
-  set -a
-  # shellcheck disable=SC1091
-  source ./.env
-  set +a
+load_env_files() {
+  local found=0
+  local env_file
+
+  for env_file in ../.env .env .env.local; do
+    if [[ -f "$env_file" ]]; then
+      loaded_env_files+=("$env_file")
+      set -a
+      # shellcheck disable=SC1090
+      source "$env_file"
+      set +a
+      found=1
+    fi
+  done
+
+  ((found)) || fail 'Missing env file. Copy .env.example to .env or create ../.env before running this script.'
+}
+
+format_env_files() {
+  local IFS=', '
+  printf '%s' "${loaded_env_files[*]}"
 }
 
 wait_for_postgres() {
@@ -74,11 +91,13 @@ main() {
   require_command docker
   require_command pnpm
 
-  [[ -f .env ]] || fail 'Missing .env. Copy .env.example to .env before running this script.'
+  load_env_files
+  log_step "Using env files: $(format_env_files)"
+
+  export PORT="${PORT:-3003}"
+
   docker compose version >/dev/null 2>&1 || fail 'Docker Compose plugin is required.'
   docker compose config >/dev/null
-
-  load_env
 
   log_step 'Installing dependencies'
   pnpm install

@@ -5,6 +5,7 @@ import { DeleteLabResponseDto } from './dto/delete-lab.dto';
 export function toLabResponse(lab: LaboratoryModel): CreateLabResponseDto {
   return {
     id: lab.id,
+    serviceId: lab.serviceId,
     clientId: lab.clientId,
     code: lab.code,
     name: lab.name,

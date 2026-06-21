@@ -13,24 +13,32 @@ datasource db {
 }
 
 model User {
-  id     String @id @default(uuid())
-  email  String @unique
-  name   String
-  role   Role   @relation(fields: [roleId], references: [id])
-  roleId String
-
-  attendanceEvents   AttendanceEvent[]
-  sessionAttendances SessionAttendance[]
+  id                      String                       @id @default(uuid())
+  subject                 String                       @unique
+  email                   String                       @unique
+  name                    String
+  status                  UserStatus                   @default(ACTIVE)
+  credential              UserCredential?
+  serviceMemberships      UserServiceMembership[]
+  registrationInvitations UserRegistrationInvitation[] @relation("RegisteredUser")
 }
 
-model Role {
-  id    String @id @default(uuid())
-  name  String @unique
-  users User[]
+enum UserStatus {
+  PENDING
+  ACTIVE
+  DISABLED
+}
+
+model UserCredential {
+  id           String @id @default(uuid())
+  userId       String @unique
+  passwordHash String
+  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Laboratory {
   id        String   @id @default(uuid())
+  serviceId String   @unique
   clientId  String   @unique
   code      String   @unique
   name      String
@@ -39,60 +47,77 @@ model Laboratory {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  events   AttendanceEvent[]
-  sessionAttendances SessionAttendance[]
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
 }
 
-enum AttendanceEventType {
-  ENTRY
-  EXIT
-  DENIED
+model Service {
+  id                      String                       @id @default(uuid())
+  key                     String                       @unique
+  name                    String
+  type                    ServiceType                  @default(APPLICATION)
+  laboratory              Laboratory?
+  memberships             UserServiceMembership[]
+  roles                   ServiceRole[]
+  registrationInvitations UserRegistrationInvitation[]
 }
 
-model AttendanceEvent {
-  id             String             @id @default(uuid())
-  labId          String
-  lab            Laboratory         @relation(fields: [labId], references: [id])
-  userId         String
-  user           User               @relation(fields: [userId], references: [id])
-  eventType      AttendanceEventType
-  eventAt        DateTime
-  receivedAt     DateTime           @default(now())
-  externalEventId String
-  deviceId       String?
-  payload        Json?
-  createdAt      DateTime           @default(now())
-
-  entrySessions SessionAttendance[] @relation("SessionAttendanceEntry")
-  exitSessions  SessionAttendance[] @relation("SessionAttendanceExit")
-
-  @@unique([labId, externalEventId])
-  @@index([labId, eventAt])
-  @@index([userId, eventAt])
+enum ServiceType {
+  APPLICATION
+  LABORATORY
 }
 
-model SessionAttendance {
-  id               String   @id @default(uuid())
-  labId            String
-  lab              Laboratory             @relation(fields: [labId], references: [id])
-  userId           String
-  user             User                   @relation(fields: [userId], references: [id])
-  entryEventId     String
-  entryEvent       AttendanceEvent        @relation("SessionAttendanceEntry", fields: [entryEventId], references: [id])
-  exitEventId      String?
-  exitEvent        AttendanceEvent?       @relation("SessionAttendanceExit", fields: [exitEventId], references: [id])
-  entryAt          DateTime
-  exitAt           DateTime?
-  eventCount       Int                    @default(1)
-  durationMinutes  Int?
-  createdAt        DateTime               @default(now())
-  updatedAt        DateTime               @updatedAt
+model UserServiceMembership {
+  userId    String
+  serviceId String
+  user      User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service   Service                     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  roles     UserServiceMembershipRole[]
 
-  @@unique([entryEventId])
-  @@unique([exitEventId])
-  @@index([labId, userId])
-  @@index([entryAt])
+  @@id([userId, serviceId])
+}
+
+model ServiceRole {
+  id          String                      @id @default(uuid())
+  serviceId   String
+  name        String
+  service     Service                     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  memberships UserServiceMembershipRole[]
+
+  @@unique([serviceId, name])
+  @@unique([id, serviceId])
+}
+
+model UserServiceMembershipRole {
+  userId        String
+  serviceId     String
+  serviceRoleId String
+  membership    UserServiceMembership @relation(fields: [userId, serviceId], references: [userId, serviceId], onDelete: Cascade)
+  serviceRole   ServiceRole           @relation(fields: [serviceRoleId, serviceId], references: [id, serviceId], onDelete: Cascade)
+
+  @@id([userId, serviceId, serviceRoleId])
+}
+
+model UserRegistrationInvitation {
+  id                String                           @id @default(uuid())
+  code              String                           @unique
+  serviceId         String
+  status            UserRegistrationInvitationStatus @default(OPEN)
+  createdBySubject  String?
+  createdByClientId String?
+  registeredUserId  String?                          @unique
+  createdAt         DateTime                         @default(now())
+  registeredAt      DateTime?
+  approvedAt        DateTime?
+  service           Service                          @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  registeredUser    User?                            @relation("RegisteredUser", fields: [registeredUserId], references: [id], onDelete: SetNull)
+
+  @@index([serviceId, status])
+}
+
+enum UserRegistrationInvitationStatus {
+  OPEN
+  CLAIMED
+  APPROVED
 }
 
 model ApiRequestLog {

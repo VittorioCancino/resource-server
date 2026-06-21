@@ -19,6 +19,12 @@ import {
   toPutLabResponse,
 } from './labs.mapper';
 
+function getLabServiceKey(code: string): string {
+  return `lab:${code.trim().toLowerCase().replace(/\s+/g, '-')}`;
+}
+
+const DEFAULT_LAB_SERVICE_ROLES = [{ name: 'admin' }, { name: 'user' }];
+
 @Injectable()
 export class LabsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -64,6 +70,16 @@ export class LabsService {
             name: createLabDto.name,
             location: createLabDto.location,
             timezone: createLabDto.timezone ?? 'UTC',
+            service: {
+              create: {
+                key: getLabServiceKey(createLabDto.code),
+                name: createLabDto.name,
+                type: 'LABORATORY',
+                roles: {
+                  create: DEFAULT_LAB_SERVICE_ROLES,
+                },
+              },
+            },
           },
         }),
       );
@@ -73,6 +89,7 @@ export class LabsService {
           uniqueFields: {
             clientId: 'A laboratory with this client id already exists',
             code: 'A laboratory with this code already exists',
+            key: 'A service with this key already exists',
           },
           defaultMessage: 'Failed to create laboratory',
         });
@@ -90,6 +107,12 @@ export class LabsService {
           location: createLabDto.location,
           timezone: createLabDto.timezone ?? 'UTC',
           isActive: true,
+          service: {
+            update: {
+              key: getLabServiceKey(createLabDto.code),
+              name: createLabDto.name,
+            },
+          },
         },
       }),
     );
@@ -98,6 +121,7 @@ export class LabsService {
       throw mapDbErrorToHttpException(updateResult.error, {
         uniqueFields: {
           code: 'A laboratory with this code already exists',
+          key: 'A service with this key already exists',
         },
         defaultMessage: 'Failed to update laboratory',
       });

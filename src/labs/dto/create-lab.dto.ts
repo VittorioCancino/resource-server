@@ -18,6 +18,7 @@ export class CreateLabDto {
 
 export class CreateLabResponseDto {
   id!: string;
+  serviceId!: string;
   clientId!: string;
   code!: string;
   name!: string;
