@@ -66,7 +66,7 @@ Split files apart when they represent separate reviewable concerns even if they 
 Prepare commits for this standalone resource-server repository only. Do not propose changes under `auth-server/` or `auth-admin-panel/` unless those directories actually exist in this worktree and the user explicitly includes them.
 
 - Runtime/backend changes under `src/`, `prisma/`, and local verification files belong to the resource-server repo.
-- Root `docker-compose.yml`, `.env.example`, `README.md`, and `init.sh` are local resource-server files in this repo, not platform orchestration files.
+- Root `docker-compose.yml`, `idp-client.yaml`, `README.md`, and `init.sh` are local resource-server files in this repo, not platform orchestration files. Generated `.env.local` must stay uncommitted.
 - Hydra auth-server and admin-panel changes are external integration work; document assumptions here instead of staging absent cross-repo files.
 - Agent/skill/docs files inside this repository belong to the resource-server repo unless they are intentionally shared outside this repo.
 

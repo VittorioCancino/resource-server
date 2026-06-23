@@ -1,0 +1,51 @@
+# Source of truth for local platform orchestration. This service is a protected
+# resource API, not a Hydra OAuth client, so this file defines runtime env and
+# resource-server audience/scope metadata only.
+service:
+  name: resource-server
+  local_url: http://localhost:3003
+
+resource_server:
+  audience: resource-server
+  scopes:
+    - internal.auth.verify-credentials
+    - users.read
+    - users.write
+    - users.delete
+    - users.me.profile.read
+    - users.me.services.hydra.roles.read
+    - user-registration.codes.validate
+    - user-registration.registrations.write
+    - user-registration.invitations.write
+    - user-registration.invitations.read
+    - user-registration.invitations.approve
+    - user-registration.invitations.delete
+    - labs.read
+    - labs.self-update
+    - labs.self-deregister
+
+runtime_env:
+  file: .env.local
+  values:
+    DATABASE_HOST: 127.0.0.1
+    DATABASE_PORT: "5434"
+    DATABASE_USER: resource_server
+    DATABASE_NAME: resource_server
+    DATABASE_URL:
+      template: postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}?schema=public
+    HYDRA_ADMIN_URL: http://127.0.0.1:4445
+    PORT: "3003"
+    SEED_ADMIN_EMAIL: admin@example.test
+    SEED_ADMIN_NAME: Local Admin
+    SEED_USER_EMAIL: user@example.test
+    SEED_USER_NAME: Local User
+  generated:
+    DATABASE_PASSWORD:
+      type: hex
+      bytes: 16
+    SEED_ADMIN_PASSWORD:
+      type: hex
+      bytes: 16
+    SEED_USER_PASSWORD:
+      type: hex
+      bytes: 16

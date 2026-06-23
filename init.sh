@@ -31,6 +31,51 @@ require_command() {
   command -v "$1" >/dev/null 2>&1 || fail "Missing required command: $1"
 }
 
+create_env_file_from_contract() {
+  local env_file=".env.local"
+  local tmp_file="${env_file}.tmp"
+
+  [[ -f idp-client.yaml ]] || fail 'Missing idp-client.yaml. Cannot generate .env.local.'
+  [[ -f scripts/render-env.mjs ]] || fail 'Missing scripts/render-env.mjs. Cannot generate .env.local.'
+
+  node scripts/render-env.mjs >"${tmp_file}"
+  chmod 600 "${tmp_file}"
+  mv "${tmp_file}" "${env_file}"
+
+  printf 'Created %s from idp-client.yaml.\n' "${env_file}"
+}
+
+require_env_var() {
+  local name="$1"
+  local value="${!name:-}"
+
+  [[ -n "${value//[[:space:]]/}" ]] || fail "Missing required env variable: ${name}. Regenerate or fill .env.local before rerunning this script."
+}
+
+require_env_vars() {
+  local name
+  local required=(
+    DATABASE_HOST
+    DATABASE_PORT
+    DATABASE_USER
+    DATABASE_PASSWORD
+    DATABASE_NAME
+    DATABASE_URL
+    HYDRA_ADMIN_URL
+    PORT
+    SEED_ADMIN_EMAIL
+    SEED_ADMIN_NAME
+    SEED_ADMIN_PASSWORD
+    SEED_USER_EMAIL
+    SEED_USER_NAME
+    SEED_USER_PASSWORD
+  )
+
+  for name in "${required[@]}"; do
+    require_env_var "${name}"
+  done
+}
+
 load_env_files() {
   local found=0
   local env_file
@@ -46,7 +91,14 @@ load_env_files() {
     fi
   done
 
-  ((found)) || fail 'Missing env file. Copy .env.example to .env or create ../.env before running this script.'
+  if ! ((found)); then
+    create_env_file_from_contract
+    loaded_env_files+=(".env.local")
+    set -a
+    # shellcheck disable=SC1091
+    source .env.local
+    set +a
+  fi
 }
 
 format_env_files() {
@@ -90,8 +142,10 @@ main() {
 
   require_command docker
   require_command pnpm
+  require_command node
 
   load_env_files
+  require_env_vars
   log_step "Using env files: $(format_env_files)"
 
   export PORT="${PORT:-3003}"
@@ -121,7 +175,7 @@ main() {
   pnpm run prisma:seed
 
   log_step 'Starting development server'
-  pnpm run start:dev
+  exec pnpm run start:dev
 }
 
 main "$@"

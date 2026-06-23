@@ -51,7 +51,7 @@ Also inspect `git diff` and `git diff --cached` when needed to understand whethe
 
 - Prepare commit groups for this standalone resource-server repository only.
 - Runtime/backend changes under `src/`, `prisma/`, and local verification files belong to this repo.
-- Root `docker-compose.yml`, `.env.example`, `README.md`, and `init.sh` are local resource-server files, not platform orchestration files.
+- Root `docker-compose.yml`, `idp-client.yaml`, `README.md`, and `init.sh` are local resource-server files, not platform orchestration files. Generated `.env.local` must stay uncommitted.
 - Hydra auth-server and admin-panel changes are external integration work; document assumptions here instead of staging absent cross-repo files.
 - Agent/skill/docs files inside this repository belong to the resource-server repo unless intentionally shared outside this repo.
 

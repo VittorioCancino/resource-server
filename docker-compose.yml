@@ -4,15 +4,19 @@ services:
     container_name: resource-server-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: resource_server
-      POSTGRES_USER: resource_server
-      POSTGRES_PASSWORD: resource_server
+      POSTGRES_DB: ${DATABASE_NAME:-resource_server}
+      POSTGRES_USER: ${DATABASE_USER:-resource_server}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-resource_server}
     ports:
-      - '5434:5432'
+      - '${DATABASE_PORT:-5434}:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U resource_server -d resource_server']
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${DATABASE_USER:-resource_server} -d ${DATABASE_NAME:-resource_server}',
+        ]
       interval: 5s
       timeout: 5s
       retries: 10

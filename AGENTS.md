@@ -14,6 +14,7 @@ This repository is a standalone NestJS resource-server extracted from the former
 - Treat `./init.sh` as the canonical local bootstrap flow.
 - `./init.sh` is responsible for resetting Postgres, running `prisma generate`, `prisma migrate:dev`, seeding, and starting the dev server.
 - Local Docker ownership is limited to this repository's Postgres service; Hydra must be provided separately and configured through `HYDRA_ADMIN_URL`.
+- `idp-client.yaml` is the committed source of truth for local env generation; `.env.local` is generated and must stay out of Git.
 - Do not introduce alternate local bootstrap scripts unless the user explicitly asks for them.
 - Do not reintroduce platform root orchestration or cross-repository bootstrap coupling unless the user explicitly asks for that integration work.
 

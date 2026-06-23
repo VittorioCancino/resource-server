@@ -31,11 +31,13 @@ It does not own the Hydra auth server, admin panel, platform root Docker Compose
 
 ## Local Setup
 
-Create a local env file:
+`idp-client.yaml` is the committed source of truth for the local runtime env
+contract. It is safe to commit because it describes required values but does not
+contain generated credentials or real secrets.
 
-```bash
-cp .env.example .env
-```
+Run `./init.sh`. If no env file exists, it creates the ignored `.env.local` file
+from `idp-client.yaml`, generates local-only secrets, and continues with the
+bootstrap flow.
 
 Default local database:
 
@@ -43,7 +45,7 @@ Default local database:
 - Port: `5434`
 - Database: `resource_server`
 - User: `resource_server`
-- Password: `resource_server`
+- Password: generated from `idp-client.yaml` into your local env file
 
 The Hydra admin URL points to a separately running Hydra instance. The default assumes Hydra exposes its admin port on the host:
 
