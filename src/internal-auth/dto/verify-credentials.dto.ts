@@ -1,4 +1,4 @@
-import { IsEmail, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 
 export class VerifyCredentialsDto {
   @IsEmail()
@@ -14,4 +14,24 @@ export class VerifyCredentialsResponseDto {
   subject?: string;
   email?: string;
   name?: string;
+}
+
+export class VerifyMaintainerCredentialsDto extends VerifyCredentialsDto {
+  @IsNotEmpty()
+  @IsString()
+  serviceClientId!: string;
+}
+
+export class VerifyMaintainerCredentialsResponseDto {
+  authenticated!: boolean;
+  accountType?: 'maintainer';
+  subject?: string;
+  email?: string;
+  name?: string;
+  service?: {
+    id: string;
+    clientId: string;
+    name: string;
+    type: string;
+  };
 }

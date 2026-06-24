@@ -5,7 +5,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   VerifyCredentialsDto,
   VerifyCredentialsResponseDto,
+  VerifyMaintainerCredentialsDto,
+  VerifyMaintainerCredentialsResponseDto,
 } from './dto/verify-credentials.dto';
+
+function normalizeServiceClientId(serviceClientId: string): string {
+  return serviceClientId.trim();
+}
 
 @Injectable()
 export class InternalAuthService {
@@ -48,6 +54,64 @@ export class InternalAuthService {
       subject: user.subject,
       email: user.email,
       name: user.name,
+    };
+  }
+
+  async verifyMaintainerCredentials(
+    verifyCredentialsDto: VerifyMaintainerCredentialsDto,
+  ): Promise<VerifyMaintainerCredentialsResponseDto> {
+    const serviceClientId = normalizeServiceClientId(
+      verifyCredentialsDto.serviceClientId,
+    );
+
+    if (!serviceClientId) {
+      return { authenticated: false };
+    }
+
+    const email = normalizeEmail(verifyCredentialsDto.email);
+    const account = await this.prisma.maintainerAccount.findFirst({
+      where: {
+        email,
+        service: {
+          clientId: serviceClientId,
+        },
+      },
+      select: {
+        subject: true,
+        email: true,
+        name: true,
+        passwordHash: true,
+        service: {
+          select: {
+            id: true,
+            clientId: true,
+            name: true,
+            type: true,
+          },
+        },
+      },
+    });
+
+    if (!account) {
+      return { authenticated: false };
+    }
+
+    const passwordMatches = await verifyPassword(
+      verifyCredentialsDto.password,
+      account.passwordHash,
+    );
+
+    if (!passwordMatches) {
+      return { authenticated: false };
+    }
+
+    return {
+      authenticated: true,
+      accountType: 'maintainer',
+      subject: account.subject,
+      email: account.email,
+      name: account.name,
+      service: account.service,
     };
   }
 }

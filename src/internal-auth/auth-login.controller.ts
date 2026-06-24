@@ -7,6 +7,8 @@ import { ScopeGuard } from '../auth/guards/scope.guard';
 import {
   VerifyCredentialsDto,
   VerifyCredentialsResponseDto,
+  VerifyMaintainerCredentialsDto,
+  VerifyMaintainerCredentialsResponseDto,
 } from './dto/verify-credentials.dto';
 import { InternalAuthService } from './internal-auth.service';
 
@@ -21,5 +23,15 @@ export class AuthLoginController {
     @Body() verifyCredentialsDto: VerifyCredentialsDto,
   ): Promise<VerifyCredentialsResponseDto> {
     return this.internalAuthService.verifyCredentials(verifyCredentialsDto);
+  }
+
+  @Post('maintainer-login')
+  @Scopes(RESOURCE_SERVER_SCOPES.INTERNAL_AUTH_VERIFY_MAINTAINER_CREDENTIALS)
+  maintainerLogin(
+    @Body() verifyCredentialsDto: VerifyMaintainerCredentialsDto,
+  ): Promise<VerifyMaintainerCredentialsResponseDto> {
+    return this.internalAuthService.verifyMaintainerCredentials(
+      verifyCredentialsDto,
+    );
   }
 }
