@@ -8,8 +8,7 @@ This service validates Hydra-issued bearer tokens from an externally managed Hyd
 
 - Validate OAuth2 access tokens through Ory Hydra introspection.
 - Enforce `resource-server` audience checks.
-- Enforce route-specific scopes for users and labs.
-- Manage lab lifecycle through token-derived `clientId` ownership.
+- Enforce route-specific scopes for users and services.
 - Persist API request audit logs in `ApiRequestLog`.
 
 ## Repository Boundary
@@ -22,9 +21,8 @@ It does not own the Hydra auth server, admin panel, platform root Docker Compose
 
 - `src/auth/` - Hydra introspection, audience guard, scope guard, scope constants.
 - `src/internal-auth/` - login-app credential verification endpoint protected by Hydra scopes.
-- `src/user-registration/` - lab-generated registration invitations and pending-user approval flow.
+- `src/user-registration/` - service-generated registration invitations and pending-user approval flow.
 - `src/users/` - user management endpoints.
-- `src/labs/` - lab self-service lifecycle endpoints.
 - `src/common/http/` - global HTTP lifecycle wiring for middleware, filters, and interceptors.
 - `src/common/logging/` - structured request audit logging implementation.
 - `src/prisma/` - Prisma service/module.
@@ -106,56 +104,66 @@ Current resource server scopes:
 - `users.write` - create/update user data.
 - `users.delete` - delete users.
 - `users.me.profile.read` - read the authenticated user's minimal profile.
-- `users.me.services.<serviceKey>.roles.read` - read the authenticated user's roles for one service.
+- `users.me.services.<clientId>.roles.read` - read the authenticated user's roles for one service.
+- `services.self.read` - read the service registered for the authenticated client.
+- `services.self-register` - create/update the service registered for the authenticated client.
+- `services.self.roles.write` - add roles to the service registered for the authenticated client.
+- `services.users.write` - add existing active users to services with an existing service role.
 - `user-registration.codes.validate` - validate a registration invitation code.
 - `user-registration.registrations.write` - claim a registration invitation and create a pending user.
-- `user-registration.invitations.write` - create lab-scoped registration invitations.
-- `user-registration.invitations.read` - list own lab registration invitations.
+- `user-registration.invitations.write` - create service-scoped registration invitations.
+- `user-registration.invitations.read` - list service-scoped registration invitations.
 - `user-registration.invitations.approve` - activate a pending user registered from an invitation.
 - `user-registration.invitations.delete` - delete an unused or pending registration invitation.
-- `labs.read` - read own lab.
-- `labs.self-update` - create/update/reactivate own lab.
-- `labs.self-deregister` - deactivate own lab.
 
 User-scoped endpoints:
 
 ```http
 GET /users/me/profile
-GET /users/me/services/:serviceKey/roles
+GET /users/me/services/:clientId/roles
 ```
 
-For Hydra admin-panel integration, request `users.me.services.hydra.roles.read` and call `GET /users/me/services/hydra/roles`.
+For Hydra admin-panel integration, request `users.me.services.hydra.roles.read` and call `GET /users/me/services/hydra/roles` when the Hydra service client id is `hydra`.
+
+Service self-management endpoints:
+
+```http
+GET /services/me
+PUT /services/me
+POST /services/me/roles
+POST /services/:clientId/users
+```
+
+Service self-registration uses the Hydra token `client_id` as `Service.clientId`. The client does not send `clientId` in the request body. `PUT /services/me` stores service metadata only; roles are added separately with `POST /services/me/roles`.
+
+`POST /services/:clientId/users` is for human service admins. It binds an existing active global user to the target service and assigns one existing role from that service.
 
 Registration endpoints:
 
 ```http
-POST /labs/me/user-registration-invitations
-GET /labs/me/user-registration-invitations
-POST /labs/me/user-registration-invitations/:id/activate
-DELETE /labs/me/user-registration-invitations/:id
-POST /services/:serviceKey/user-registration-invitations
-GET /services/:serviceKey/user-registration-invitations
-POST /services/:serviceKey/user-registration-invitations/:id/activate
-DELETE /services/:serviceKey/user-registration-invitations/:id
+POST /services/:clientId/user-registration-invitations
+GET /services/:clientId/user-registration-invitations
+GET /services/:clientId/user-registration-invitations/:id
+POST /services/:clientId/user-registration-invitations/:id/activate
+POST /services/:clientId/user-registration-invitations/:id/reject
+DELETE /services/:clientId/user-registration-invitations/:id
 POST /user-registration/validate-code
 POST /user-registration/register
 ```
 
-Lab invitation management endpoints are Hydra-protected and derive the laboratory from the token `clientId`. Service invitation management endpoints are Hydra-protected and require the authenticated token subject to have the `admin` role for the target service. User-portal public registration endpoints are also Hydra-protected; the user-portal backend should call them with a client-credentials token for audience `resource-server`. Registration endpoints accept the generated 8-character code, create users as `PENDING`, and require service-admin activation before login succeeds.
+Service invitation management endpoints are Hydra-protected and require the authenticated token subject to have the `admin` role for the target service. User-portal public registration endpoints are also Hydra-protected; the user-portal backend should call them with a client-credentials token for audience `resource-server`. Registration endpoints accept the generated 8-character code, create users as `PENDING`, and require service-admin activation before login succeeds.
 
-## Service-Backed Laboratories
+## Services
 
-`Service` is the shared authorization domain for platform applications and laboratories.
+`Service` is the shared authorization domain for platform applications.
 
-Application services use `Service.type = APPLICATION`, for example `hydra` and `user-portal`. Laboratories keep lab-specific data in `Laboratory`, but each laboratory references one backing `Service` with `Service.type = LABORATORY`.
+Application services use `Service.type = APPLICATION`, for example `hydra` and `user-portal`. `Service.clientId` stores the Hydra OAuth client id that owns the service registration. Laboratory-specific extension data has been removed while the service-first model is being reworked.
 
 Generic service roles and memberships are represented by:
 
 - `ServiceRole`
 - `UserServiceMembership`
 - `UserServiceMembershipRole`
-
-Lab-specific role and membership tables have been replaced by service roles and memberships. Lab self-service APIs still resolve the lab from the token `clientId`, then use `Laboratory.serviceId` for registration and membership workflows.
 
 ## Audit Logging
 
