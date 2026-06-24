@@ -31,14 +31,12 @@ import {
 } from './dto/user-registration.dto';
 import {
   toRegistrationInvitationResponse,
-  toRegistrationLaboratoryResponse,
   toRegistrationServiceResponse,
 } from './user-registration.mapper';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CODE_LENGTH = 8;
 const MAX_CODE_ATTEMPTS = 8;
-const DEFAULT_REGISTRATION_SERVICE_ROLE = 'user';
 const SERVICE_ADMIN_ROLE = 'admin';
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 10;
@@ -52,8 +50,8 @@ function normalizePersonName(name: string): string {
   return name.trim().replace(/\s+/g, ' ');
 }
 
-function normalizeServiceKey(serviceKey: string): string {
-  return serviceKey.trim().toLowerCase();
+function normalizeClientId(clientId: string): string {
+  return clientId.trim();
 }
 
 function generateInvitationCode(): string {
@@ -127,16 +125,9 @@ export class UserRegistrationService {
       service: {
         select: {
           id: true,
-          key: true,
+          clientId: true,
           name: true,
           type: true,
-          laboratory: {
-            select: {
-              id: true,
-              code: true,
-              name: true,
-            },
-          },
         },
       },
       registeredUser: {
@@ -151,48 +142,20 @@ export class UserRegistrationService {
     };
   }
 
-  private async getOwnLab(authToken: TokenIntrospection | undefined) {
-    const clientId = authToken?.clientId;
+  private async getServiceByClientId(clientId: string) {
+    const normalizedClientId = normalizeClientId(clientId);
 
-    if (!clientId) {
-      throw new InternalServerErrorException(
-        'Authenticated client id is missing',
-      );
-    }
-
-    const lab = await this.prisma.laboratory.findUnique({
-      where: { clientId },
-      select: { id: true, serviceId: true },
-    });
-
-    if (!lab) {
-      throw new NotFoundException('Laboratory was not found');
-    }
-
-    return lab;
-  }
-
-  private async getServiceByKey(serviceKey: string) {
-    const normalizedServiceKey = normalizeServiceKey(serviceKey);
-
-    if (!normalizedServiceKey) {
+    if (!normalizedClientId) {
       throw new NotFoundException('Service was not found');
     }
 
     const service = await this.prisma.service.findUnique({
-      where: { key: normalizedServiceKey },
+      where: { clientId: normalizedClientId },
       select: {
         id: true,
-        key: true,
+        clientId: true,
         name: true,
         type: true,
-        laboratory: {
-          select: {
-            id: true,
-            code: true,
-            name: true,
-          },
-        },
       },
     });
 
@@ -205,7 +168,7 @@ export class UserRegistrationService {
 
   private async assertServiceAdmin(
     authToken: TokenIntrospection | undefined,
-    serviceKey: string,
+    clientId: string,
   ) {
     const subject = authToken?.subject;
 
@@ -213,7 +176,7 @@ export class UserRegistrationService {
       throw new UnauthorizedException('Authenticated subject is missing');
     }
 
-    const service = await this.getServiceByKey(serviceKey);
+    const service = await this.getServiceByClientId(clientId);
     const user = await this.prisma.user.findUnique({
       where: { subject },
       select: {
@@ -407,48 +370,6 @@ export class UserRegistrationService {
           },
         });
 
-        await transaction.userServiceMembership.upsert({
-          where: {
-            userId_serviceId: {
-              userId: registeredUserId,
-              serviceId,
-            },
-          },
-          update: {},
-          create: {
-            userId: registeredUserId,
-            serviceId,
-          },
-        });
-
-        const defaultRole = await transaction.serviceRole.findUnique({
-          where: {
-            serviceId_name: {
-              serviceId,
-              name: DEFAULT_REGISTRATION_SERVICE_ROLE,
-            },
-          },
-          select: { id: true },
-        });
-
-        if (defaultRole) {
-          await transaction.userServiceMembershipRole.upsert({
-            where: {
-              userId_serviceId_serviceRoleId: {
-                userId: registeredUserId,
-                serviceId,
-                serviceRoleId: defaultRole.id,
-              },
-            },
-            update: {},
-            create: {
-              userId: registeredUserId,
-              serviceId,
-              serviceRoleId: defaultRole.id,
-            },
-          });
-        }
-
         return transaction.userRegistrationInvitation.update({
           where: { id: invitation.id },
           data: {
@@ -512,37 +433,84 @@ export class UserRegistrationService {
     };
   }
 
-  async createInvitation(
-    authToken: TokenIntrospection | undefined,
+  private async rejectInvitationForService(
+    serviceId: string,
+    invitationId: string,
   ): Promise<RegistrationInvitationResponseDto> {
-    const lab = await this.getOwnLab(authToken);
+    const invitation = await this.prisma.userRegistrationInvitation.findFirst({
+      where: { id: invitationId, serviceId },
+      select: {
+        id: true,
+        status: true,
+        registeredUser: {
+          select: {
+            id: true,
+            status: true,
+          },
+        },
+      },
+    });
 
-    return this.createInvitationForService(lab.serviceId, authToken);
+    if (!invitation) {
+      throw new NotFoundException('Registration invitation was not found');
+    }
+
+    if (invitation.status !== 'CLAIMED' || !invitation.registeredUser) {
+      throw new ConflictException(
+        'Registration invitation is not ready to reject',
+      );
+    }
+
+    if (invitation.registeredUser.status !== 'PENDING') {
+      throw new ConflictException('Only pending users can be rejected');
+    }
+
+    const registeredUserId = invitation.registeredUser.id;
+
+    const result = await safeDbCall(() =>
+      this.prisma.$transaction(async (transaction) => {
+        await transaction.userRegistrationInvitation.update({
+          where: { id: invitation.id },
+          data: {
+            status: 'REJECTED',
+          },
+        });
+
+        await transaction.user.delete({
+          where: { id: registeredUserId },
+        });
+
+        return transaction.userRegistrationInvitation.findUniqueOrThrow({
+          where: { id: invitation.id },
+          include: this.getInvitationInclude(),
+        });
+      }),
+    );
+
+    if (!result.ok) {
+      throw mapDbErrorToHttpException(result.error, {
+        defaultMessage: 'Failed to reject user registration invitation',
+      });
+    }
+
+    return toRegistrationInvitationResponse(result.data);
   }
 
   async createServiceInvitation(
     authToken: TokenIntrospection | undefined,
-    serviceKey: string,
+    clientId: string,
   ): Promise<RegistrationInvitationResponseDto> {
-    const service = await this.assertServiceAdmin(authToken, serviceKey);
+    const service = await this.assertServiceAdmin(authToken, clientId);
 
     return this.createInvitationForService(service.id, authToken);
   }
 
-  async listOwnLabInvitations(
-    authToken: TokenIntrospection | undefined,
-  ): Promise<RegistrationInvitationResponseDto[]> {
-    const lab = await this.getOwnLab(authToken);
-
-    return this.listInvitationsForService(lab.serviceId);
-  }
-
   async listServiceInvitations(
     authToken: TokenIntrospection | undefined,
-    serviceKey: string,
+    clientId: string,
     query: ListRegistrationInvitationsQueryDto,
   ): Promise<ListRegistrationInvitationsResponseDto> {
-    const service = await this.assertServiceAdmin(authToken, serviceKey);
+    const service = await this.assertServiceAdmin(authToken, clientId);
 
     return this.listPaginatedInvitationsForService(
       service.id,
@@ -553,10 +521,10 @@ export class UserRegistrationService {
 
   async getServiceInvitation(
     authToken: TokenIntrospection | undefined,
-    serviceKey: string,
+    clientId: string,
     invitationId: string,
   ): Promise<RegistrationInvitationResponseDto> {
-    const service = await this.assertServiceAdmin(authToken, serviceKey);
+    const service = await this.assertServiceAdmin(authToken, clientId);
 
     return this.getInvitationForService(service.id, invitationId);
   }
@@ -573,16 +541,9 @@ export class UserRegistrationService {
         service: {
           select: {
             id: true,
-            key: true,
+            clientId: true,
             name: true,
             type: true,
-            laboratory: {
-              select: {
-                id: true,
-                code: true,
-                name: true,
-              },
-            },
           },
         },
       },
@@ -616,9 +577,6 @@ export class UserRegistrationService {
             }
           : null,
       service: toRegistrationServiceResponse(invitation.service),
-      laboratory: invitation.service.laboratory
-        ? toRegistrationLaboratoryResponse(invitation.service.laboratory)
-        : null,
     };
   }
 
@@ -695,40 +653,32 @@ export class UserRegistrationService {
     };
   }
 
-  async activateInvitation(
-    authToken: TokenIntrospection | undefined,
-    invitationId: string,
-  ): Promise<RegistrationInvitationResponseDto> {
-    const lab = await this.getOwnLab(authToken);
-
-    return this.activateInvitationForService(lab.serviceId, invitationId);
-  }
-
   async activateServiceInvitation(
     authToken: TokenIntrospection | undefined,
-    serviceKey: string,
+    clientId: string,
     invitationId: string,
   ): Promise<RegistrationInvitationResponseDto> {
-    const service = await this.assertServiceAdmin(authToken, serviceKey);
+    const service = await this.assertServiceAdmin(authToken, clientId);
 
     return this.activateInvitationForService(service.id, invitationId);
   }
 
-  async deleteInvitation(
+  async rejectServiceInvitation(
     authToken: TokenIntrospection | undefined,
+    clientId: string,
     invitationId: string,
-  ): Promise<{ id: string; message: string }> {
-    const lab = await this.getOwnLab(authToken);
+  ): Promise<RegistrationInvitationResponseDto> {
+    const service = await this.assertServiceAdmin(authToken, clientId);
 
-    return this.deleteInvitationForService(lab.serviceId, invitationId);
+    return this.rejectInvitationForService(service.id, invitationId);
   }
 
   async deleteServiceInvitation(
     authToken: TokenIntrospection | undefined,
-    serviceKey: string,
+    clientId: string,
     invitationId: string,
   ): Promise<{ id: string; message: string }> {
-    const service = await this.assertServiceAdmin(authToken, serviceKey);
+    const service = await this.assertServiceAdmin(authToken, clientId);
 
     return this.deleteInvitationForService(service.id, invitationId);
   }

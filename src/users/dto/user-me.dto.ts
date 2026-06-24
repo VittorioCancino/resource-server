@@ -8,7 +8,7 @@ export class UserMeProfileResponseDto {
 export class UserMeServiceRolesResponseDto {
   subject!: string;
   service!: {
-    key: string;
+    clientId: string;
     name: string;
   };
   roles!: string[];

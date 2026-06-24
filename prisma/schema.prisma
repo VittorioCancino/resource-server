@@ -36,26 +36,12 @@ model UserCredential {
   user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model Laboratory {
-  id        String   @id @default(uuid())
-  serviceId String   @unique
-  clientId  String   @unique
-  code      String   @unique
-  name      String
-  location  String?
-  timezone  String   @default("UTC")
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-}
-
 model Service {
   id                      String                       @id @default(uuid())
-  key                     String                       @unique
+  clientId                String                       @unique
   name                    String
   type                    ServiceType                  @default(APPLICATION)
-  laboratory              Laboratory?
+  maintainerAccount       MaintainerAccount?
   memberships             UserServiceMembership[]
   roles                   ServiceRole[]
   registrationInvitations UserRegistrationInvitation[]
@@ -64,6 +50,20 @@ model Service {
 enum ServiceType {
   APPLICATION
   LABORATORY
+}
+
+model MaintainerAccount {
+  id           String   @id @default(uuid())
+  serviceId    String   @unique
+  subject      String   @unique
+  email        String
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  service      Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, email])
 }
 
 model UserServiceMembership {
@@ -118,6 +118,7 @@ enum UserRegistrationInvitationStatus {
   OPEN
   CLAIMED
   APPROVED
+  REJECTED
 }
 
 model ApiRequestLog {

@@ -63,12 +63,6 @@ require_env_vars() {
     DATABASE_URL
     HYDRA_ADMIN_URL
     PORT
-    SEED_ADMIN_EMAIL
-    SEED_ADMIN_NAME
-    SEED_ADMIN_PASSWORD
-    SEED_USER_EMAIL
-    SEED_USER_NAME
-    SEED_USER_PASSWORD
   )
 
   for name in "${required[@]}"; do
@@ -171,7 +165,7 @@ main() {
   log_step 'Running Prisma migrations'
   pnpm run prisma:migrate:dev
 
-  log_step 'Seeding database'
+  log_step 'Running database seed hook'
   pnpm run prisma:seed
 
   log_step 'Starting development server'

@@ -24,15 +24,15 @@ export class UsersMeController {
     return this.usersService.getOwnProfile(request.authToken?.subject);
   }
 
-  @Get('services/:serviceKey/roles')
+  @Get('services/:clientId/roles')
   @Scopes(RESOURCE_SERVER_SCOPES.USERS_ME_SERVICE_ROLES_READ)
   getOwnServiceRoles(
     @Req() request: AuthenticatedRequest,
-    @Param('serviceKey') serviceKey: string,
+    @Param('clientId') clientId: string,
   ): Promise<UserMeServiceRolesResponseDto> {
     return this.usersService.getOwnServiceRoles(
       request.authToken?.subject,
-      serviceKey,
+      clientId,
     );
   }
 }

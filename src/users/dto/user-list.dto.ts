@@ -19,7 +19,7 @@ export class ListUsersQueryDto {
 
   @IsOptional()
   @IsString()
-  serviceKey?: string;
+  clientId?: string;
 }
 
 export class UserIdDto {
@@ -29,24 +29,10 @@ export class UserIdDto {
 
 export class UserServiceSummaryResponseDto {
   id!: string;
-  key!: string;
+  clientId!: string;
   name!: string;
   type!: string;
   roles!: string[];
-}
-
-export class UserLaboratorySummaryResponseDto {
-  id!: string;
-  clientId!: string;
-  code!: string;
-  name!: string;
-  location!: string | null;
-  timezone!: string;
-  isActive!: boolean;
-}
-
-export class UserServiceDetailResponseDto extends UserServiceSummaryResponseDto {
-  laboratory!: UserLaboratorySummaryResponseDto | null;
 }
 
 export class UserListItemResponseDto {
@@ -64,7 +50,7 @@ export class UserDetailResponseDto {
   name!: string;
   email!: string;
   status!: string;
-  services!: UserServiceDetailResponseDto[];
+  services!: UserServiceSummaryResponseDto[];
 }
 
 export class UsersPaginationResponseDto {

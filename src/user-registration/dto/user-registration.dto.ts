@@ -60,15 +60,9 @@ export class ListRegistrationInvitationsQueryDto {
   createdBy?: string;
 }
 
-export class RegistrationLaboratoryResponseDto {
-  id!: string;
-  code!: string;
-  name!: string;
-}
-
 export class RegistrationServiceResponseDto {
   id!: string;
-  key!: string;
+  clientId!: string;
   name!: string;
   type!: string;
 }
@@ -97,14 +91,12 @@ export class RegistrationInvitationResponseDto {
   createdBySubject!: string | null;
   createdByClientId!: string | null;
   service!: RegistrationServiceResponseDto;
-  laboratory!: RegistrationLaboratoryResponseDto | null;
   registeredUser!: RegistrationUserResponseDto | null;
 }
 
 export class ValidateRegistrationCodeResponseDto {
   valid!: boolean;
   service?: RegistrationServiceResponseDto;
-  laboratory?: RegistrationLaboratoryResponseDto | null;
   creator?: RegistrationInvitationCreatorResponseDto | null;
 }
 

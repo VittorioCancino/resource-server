@@ -41,20 +41,9 @@ const USER_WITH_SERVICES_SELECT = {
       service: {
         select: {
           id: true,
-          key: true,
+          clientId: true,
           name: true,
           type: true,
-          laboratory: {
-            select: {
-              id: true,
-              clientId: true,
-              code: true,
-              name: true,
-              location: true,
-              timezone: true,
-              isActive: true,
-            },
-          },
         },
       },
       roles: {
@@ -120,7 +109,7 @@ export class UsersService {
     const pageSize = Math.min(requestedPageSize, MAX_PAGE_SIZE);
     const search = query.search?.trim();
     const status = parseUserStatus(query.status);
-    const serviceKey = query.serviceKey?.trim().toLowerCase();
+    const clientId = query.clientId?.trim();
     const where: Prisma.UserWhereInput = {};
 
     if (search) {
@@ -135,11 +124,11 @@ export class UsersService {
       where.status = status;
     }
 
-    if (serviceKey) {
+    if (clientId) {
       where.serviceMemberships = {
         some: {
           service: {
-            key: serviceKey,
+            clientId,
           },
         },
       };
@@ -232,23 +221,23 @@ export class UsersService {
 
   async getOwnServiceRoles(
     subject: string | undefined,
-    serviceKey: string,
+    clientId: string,
   ): Promise<UserMeServiceRolesResponseDto> {
     if (!subject) {
       throw new UnauthorizedException('Authenticated subject is missing');
     }
 
-    if (!serviceKey.trim()) {
-      throw new BadRequestException('Service key is required');
+    if (!clientId.trim()) {
+      throw new BadRequestException('Service client id is required');
     }
 
-    const normalizedServiceKey = serviceKey.trim().toLowerCase();
+    const normalizedClientId = clientId.trim();
 
     const serviceResult = await safeDbCall(() =>
       this.prisma.service.findUnique({
-        where: { key: normalizedServiceKey },
+        where: { clientId: normalizedClientId },
         select: {
-          key: true,
+          clientId: true,
           name: true,
         },
       }),
@@ -272,7 +261,7 @@ export class UsersService {
           serviceMemberships: {
             where: {
               service: {
-                key: normalizedServiceKey,
+                clientId: normalizedClientId,
               },
             },
             select: {

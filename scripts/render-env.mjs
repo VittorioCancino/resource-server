@@ -10,12 +10,6 @@ const preferredOrder = [
   'DATABASE_URL',
   'HYDRA_ADMIN_URL',
   'PORT',
-  'SEED_ADMIN_EMAIL',
-  'SEED_ADMIN_NAME',
-  'SEED_ADMIN_PASSWORD',
-  'SEED_USER_EMAIL',
-  'SEED_USER_NAME',
-  'SEED_USER_PASSWORD',
 ];
 
 function parseScalar(value) {

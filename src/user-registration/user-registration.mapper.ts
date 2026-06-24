@@ -1,22 +1,14 @@
 import {
   RegistrationInvitationResponseDto,
-  RegistrationLaboratoryResponseDto,
   RegistrationServiceResponseDto,
   RegistrationUserResponseDto,
 } from './dto/user-registration.dto';
 
-interface InvitationLaboratory {
-  id: string;
-  code: string;
-  name: string;
-}
-
 interface InvitationService {
   id: string;
-  key: string;
+  clientId: string;
   name: string;
   type: string;
-  laboratory: InvitationLaboratory | null;
 }
 
 interface InvitationUser {
@@ -40,22 +32,12 @@ interface InvitationWithRelations {
   registeredUser: InvitationUser | null;
 }
 
-export function toRegistrationLaboratoryResponse(
-  laboratory: InvitationLaboratory,
-): RegistrationLaboratoryResponseDto {
-  return {
-    id: laboratory.id,
-    code: laboratory.code,
-    name: laboratory.name,
-  };
-}
-
 export function toRegistrationServiceResponse(
   service: InvitationService,
 ): RegistrationServiceResponseDto {
   return {
     id: service.id,
-    key: service.key,
+    clientId: service.clientId,
     name: service.name,
     type: service.type,
   };
@@ -86,9 +68,6 @@ export function toRegistrationInvitationResponse(
     createdBySubject: invitation.createdBySubject,
     createdByClientId: invitation.createdByClientId,
     service: toRegistrationServiceResponse(invitation.service),
-    laboratory: invitation.service.laboratory
-      ? toRegistrationLaboratoryResponse(invitation.service.laboratory)
-      : null,
     registeredUser: invitation.registeredUser
       ? toRegistrationUserResponse(invitation.registeredUser)
       : null,

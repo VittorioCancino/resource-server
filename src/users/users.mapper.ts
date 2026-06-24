@@ -1,26 +1,14 @@
 import {
   UserDetailResponseDto,
   UserListItemResponseDto,
-  UserServiceDetailResponseDto,
   UserServiceSummaryResponseDto,
 } from './dto/user-list.dto';
 
-interface UserLaboratoryPayload {
-  id: string;
-  clientId: string;
-  code: string;
-  name: string;
-  location: string | null;
-  timezone: string;
-  isActive: boolean;
-}
-
 interface UserServicePayload {
   id: string;
-  key: string;
+  clientId: string;
   name: string;
   type: string;
-  laboratory: UserLaboratoryPayload | null;
 }
 
 interface UserServiceMembershipPayload {
@@ -52,19 +40,10 @@ function toUserServiceSummary(
 ): UserServiceSummaryResponseDto {
   return {
     id: membership.service.id,
-    key: membership.service.key,
+    clientId: membership.service.clientId,
     name: membership.service.name,
     type: membership.service.type,
     roles: getSortedRoles(membership),
-  };
-}
-
-function toUserServiceDetail(
-  membership: UserServiceMembershipPayload,
-): UserServiceDetailResponseDto {
-  return {
-    ...toUserServiceSummary(membership),
-    laboratory: membership.service.laboratory,
   };
 }
 
@@ -79,7 +58,7 @@ export function toUserListItemResponse(
     status: user.status,
     services: user.serviceMemberships
       .map(toUserServiceSummary)
-      .sort((left, right) => left.key.localeCompare(right.key)),
+      .sort((left, right) => left.clientId.localeCompare(right.clientId)),
   };
 }
 
@@ -93,7 +72,7 @@ export function toUserDetailResponse(
     email: user.email,
     status: user.status,
     services: user.serviceMemberships
-      .map(toUserServiceDetail)
-      .sort((left, right) => left.key.localeCompare(right.key)),
+      .map(toUserServiceSummary)
+      .sort((left, right) => left.clientId.localeCompare(right.clientId)),
   };
 }

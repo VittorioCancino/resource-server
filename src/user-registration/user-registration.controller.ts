@@ -52,57 +52,7 @@ export class UserRegistrationController {
 }
 
 @UseGuards(HydraAuthGuard, AudienceGuard, ScopeGuard)
-@Controller('labs/me/user-registration-invitations')
-export class LabUserRegistrationController {
-  constructor(
-    private readonly userRegistrationService: UserRegistrationService,
-  ) {}
-
-  @Post()
-  @Scopes(RESOURCE_SERVER_SCOPES.USER_REGISTRATION_INVITATIONS_WRITE)
-  createInvitation(
-    @Req() request: AuthenticatedRequest,
-  ): Promise<RegistrationInvitationResponseDto> {
-    return this.userRegistrationService.createInvitation(request.authToken);
-  }
-
-  @Get()
-  @Scopes(RESOURCE_SERVER_SCOPES.USER_REGISTRATION_INVITATIONS_READ)
-  listOwnLabInvitations(
-    @Req() request: AuthenticatedRequest,
-  ): Promise<RegistrationInvitationResponseDto[]> {
-    return this.userRegistrationService.listOwnLabInvitations(
-      request.authToken,
-    );
-  }
-
-  @Post(':id/activate')
-  @Scopes(RESOURCE_SERVER_SCOPES.USER_REGISTRATION_INVITATIONS_APPROVE)
-  activateInvitation(
-    @Req() request: AuthenticatedRequest,
-    @Param() params: InvitationIdDto,
-  ): Promise<RegistrationInvitationResponseDto> {
-    return this.userRegistrationService.activateInvitation(
-      request.authToken,
-      params.id,
-    );
-  }
-
-  @Delete(':id')
-  @Scopes(RESOURCE_SERVER_SCOPES.USER_REGISTRATION_INVITATIONS_DELETE)
-  deleteInvitation(
-    @Req() request: AuthenticatedRequest,
-    @Param() params: InvitationIdDto,
-  ): Promise<{ id: string; message: string }> {
-    return this.userRegistrationService.deleteInvitation(
-      request.authToken,
-      params.id,
-    );
-  }
-}
-
-@UseGuards(HydraAuthGuard, AudienceGuard, ScopeGuard)
-@Controller('services/:serviceKey/user-registration-invitations')
+@Controller('services/:clientId/user-registration-invitations')
 export class ServiceUserRegistrationController {
   constructor(
     private readonly userRegistrationService: UserRegistrationService,
@@ -112,11 +62,11 @@ export class ServiceUserRegistrationController {
   @Scopes(RESOURCE_SERVER_SCOPES.USER_REGISTRATION_INVITATIONS_WRITE)
   createInvitation(
     @Req() request: AuthenticatedRequest,
-    @Param('serviceKey') serviceKey: string,
+    @Param('clientId') clientId: string,
   ): Promise<RegistrationInvitationResponseDto> {
     return this.userRegistrationService.createServiceInvitation(
       request.authToken,
-      serviceKey,
+      clientId,
     );
   }
 
@@ -124,12 +74,12 @@ export class ServiceUserRegistrationController {
   @Scopes(RESOURCE_SERVER_SCOPES.USER_REGISTRATION_INVITATIONS_READ)
   listServiceInvitations(
     @Req() request: AuthenticatedRequest,
-    @Param('serviceKey') serviceKey: string,
+    @Param('clientId') clientId: string,
     @Query() query: ListRegistrationInvitationsQueryDto,
   ): Promise<ListRegistrationInvitationsResponseDto> {
     return this.userRegistrationService.listServiceInvitations(
       request.authToken,
-      serviceKey,
+      clientId,
       query,
     );
   }
@@ -138,12 +88,12 @@ export class ServiceUserRegistrationController {
   @Scopes(RESOURCE_SERVER_SCOPES.USER_REGISTRATION_INVITATIONS_READ)
   getServiceInvitation(
     @Req() request: AuthenticatedRequest,
-    @Param('serviceKey') serviceKey: string,
+    @Param('clientId') clientId: string,
     @Param() params: InvitationIdDto,
   ): Promise<RegistrationInvitationResponseDto> {
     return this.userRegistrationService.getServiceInvitation(
       request.authToken,
-      serviceKey,
+      clientId,
       params.id,
     );
   }
@@ -152,12 +102,26 @@ export class ServiceUserRegistrationController {
   @Scopes(RESOURCE_SERVER_SCOPES.USER_REGISTRATION_INVITATIONS_APPROVE)
   activateInvitation(
     @Req() request: AuthenticatedRequest,
-    @Param('serviceKey') serviceKey: string,
+    @Param('clientId') clientId: string,
     @Param() params: InvitationIdDto,
   ): Promise<RegistrationInvitationResponseDto> {
     return this.userRegistrationService.activateServiceInvitation(
       request.authToken,
-      serviceKey,
+      clientId,
+      params.id,
+    );
+  }
+
+  @Post(':id/reject')
+  @Scopes(RESOURCE_SERVER_SCOPES.USER_REGISTRATION_INVITATIONS_APPROVE)
+  rejectInvitation(
+    @Req() request: AuthenticatedRequest,
+    @Param('clientId') clientId: string,
+    @Param() params: InvitationIdDto,
+  ): Promise<RegistrationInvitationResponseDto> {
+    return this.userRegistrationService.rejectServiceInvitation(
+      request.authToken,
+      clientId,
       params.id,
     );
   }
@@ -166,12 +130,12 @@ export class ServiceUserRegistrationController {
   @Scopes(RESOURCE_SERVER_SCOPES.USER_REGISTRATION_INVITATIONS_DELETE)
   deleteInvitation(
     @Req() request: AuthenticatedRequest,
-    @Param('serviceKey') serviceKey: string,
+    @Param('clientId') clientId: string,
     @Param() params: InvitationIdDto,
   ): Promise<{ id: string; message: string }> {
     return this.userRegistrationService.deleteServiceInvitation(
       request.authToken,
-      serviceKey,
+      clientId,
       params.id,
     );
   }
